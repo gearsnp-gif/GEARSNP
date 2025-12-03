@@ -115,8 +115,8 @@ export default async function HomePage() {
           </div>
           {featuredProducts && featuredProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {featuredProducts.map((product: { id: string; product_images: { sort_order: number | null; image_url: string }[]; teams: unknown; [key: string]: unknown }) => {
-                const images = product.product_images.sort((a, b) => 
+              {featuredProducts.map((product: any) => {
+                const images = product.product_images.sort((a: any, b: any) => 
                   (a.sort_order || 0) - (b.sort_order || 0)
                 );
                 return (
@@ -125,7 +125,7 @@ export default async function HomePage() {
                     product={{
                       ...product,
                       team: product.teams,
-                      image_url: images[0]?.image_url || null,
+                      hero_image_url: images[0]?.image_url || null,
                     }}
                   />
                 );
