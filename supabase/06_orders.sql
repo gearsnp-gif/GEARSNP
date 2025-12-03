@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   
   -- Constraints
-  CONSTRAINT orders_status_check CHECK (status IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
+  CONSTRAINT orders_status_check CHECK (status IN ('pending', 'confirmed', 'processing', 'shipping', 'delivered', 'cancelled')),
   CONSTRAINT orders_payment_method_check CHECK (payment_method IN ('cod', 'esewa', 'khalti', 'bank_transfer')),
   CONSTRAINT orders_payment_status_check CHECK (payment_status IN ('unpaid', 'paid', 'refunded'))
 );

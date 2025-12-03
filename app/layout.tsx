@@ -74,7 +74,7 @@ export default async function RootLayout({
         className={`${formula1.variable} ${geistMono.variable} font-sans antialiased`}
       >
         {children}
-        <Toaster />
+        <Toaster position="top-right" />
       </body>
     </html>
   );

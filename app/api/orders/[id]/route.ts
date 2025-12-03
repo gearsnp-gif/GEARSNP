@@ -63,7 +63,9 @@ export async function PATCH(
       order_items,
       prepaid_amount,
       cod_amount,
-      discount_amount
+      discount_amount,
+      gaaubesi_order_id,
+      sent_to_delivery_at
     } = body;
 
     const supabase = await supabaseServer();
@@ -81,6 +83,8 @@ export async function PATCH(
     if (prepaid_amount !== undefined) updateData.prepaid_amount = prepaid_amount;
     if (cod_amount !== undefined) updateData.cod_amount = cod_amount;
     if (discount_amount !== undefined) updateData.discount_amount = discount_amount;
+    if (gaaubesi_order_id !== undefined) updateData.gaaubesi_order_id = gaaubesi_order_id;
+    if (sent_to_delivery_at !== undefined) updateData.sent_to_delivery_at = sent_to_delivery_at;
 
     // Calculate new totals if order_items changed or discount changed
     if (order_items && order_items.length > 0) {
@@ -153,6 +157,36 @@ export async function PATCH(
     return NextResponse.json({ order });
   } catch (error) {
     console.error("Error updating order:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/orders/[id] - Delete order
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await supabaseServer();
+
+    // Delete order (order_items will be automatically deleted due to CASCADE)
+    const { error } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting order:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting order:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -1,0 +1,387 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { formatNepaliCurrency } from "@/lib/utils";
+import { toast } from "sonner";
+import type { DeliveryRate } from "@/lib/delivery-rates";
+import { CitySelector } from "@/components/store/CitySelector";
+
+interface CartItem {
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  size: string | null;
+  image_url: string | null;
+}
+
+interface CheckoutFormProps {
+  deliveryRates: readonly DeliveryRate[];
+}
+
+export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
+  const router = useRouter();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form state
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [orderNote, setOrderNote] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [promoCode, setPromoCode] = useState("");
+  const [deliveryCharge, setDeliveryCharge] = useState(0);
+
+  useEffect(() => {
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    setCartItems(cart);
+    setIsLoading(false);
+
+    // Redirect if cart is empty
+    if (cart.length === 0) {
+      router.push("/cart");
+    }
+  }, [router]);
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = subtotal + deliveryCharge;
+
+  const handleCityChange = (selectedCity: string) => {
+    setCity(selectedCity);
+    const rate = deliveryRates.find((r) => r.city === selectedCity);
+    setDeliveryCharge(rate?.rate || 0);
+  };
+
+  const handleApplyPromo = () => {
+    if (promoCode.trim()) {
+      toast.error("Invalid promo code");
+    }
+  };
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validation
+    if (!fullName || !phone || !city || !address) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Create order in our system
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_name: fullName,
+          customer_email: email || null,
+          customer_phone: phone,
+          city,
+          address,
+          landmark: landmark || null,
+          order_note: orderNote || null,
+          payment_method: paymentMethod,
+          items: cartItems,
+          subtotal,
+          delivery_charge: deliveryCharge,
+          total,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to place order");
+      }
+
+      // Clear cart
+      localStorage.removeItem("cart");
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      // Redirect to success page with order number
+      router.push(`/order-success?order=${data.order.order_number}`);
+    } catch (error) {
+      console.error("Order error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to place order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading checkout...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="bg-muted/30 border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Link href="/cart">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold">Checkout</h1>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        <form onSubmit={handlePlaceOrder}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Forms */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* General Information */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#e10600] text-white font-bold">
+                      1
+                    </div>
+                    <h2 className="text-xl font-bold">General Information</h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fullName">
+                        Full Name <span className="text-[#e10600]">*</span>
+                      </Label>
+                      <Input
+                        id="fullName"
+                        placeholder="eg: Max Bahadur"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="eg: max@gmail.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="phone">
+                        Phone Number <span className="text-[#e10600]">*</span>
+                      </Label>
+                      <Input
+                        id="phone"
+                        placeholder="eg: 9862200000"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="orderNote">Order Note (any message for us)</Label>
+                      <Input
+                        id="orderNote"
+                        placeholder="eg: i love max"
+                        value={orderNote}
+                        onChange={(e) => setOrderNote(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Delivery Address */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#e10600] text-white font-bold">
+                      2
+                    </div>
+                    <h2 className="text-xl font-bold">Delivery Address</h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="city">
+                        City/District <span className="text-[#e10600]">*</span>
+                      </Label>
+                      <CitySelector
+                        deliveryRates={deliveryRates}
+                        value={city}
+                        onValueChange={handleCityChange}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="address">
+                        Address <span className="text-[#e10600]">*</span>
+                      </Label>
+                      <Input
+                        id="address"
+                        placeholder="eg: kathmandu, tinkune"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="landmark">Landmark</Label>
+                      <Input
+                        id="landmark"
+                        placeholder="eg: madan bhandari park"
+                        value={landmark}
+                        onChange={(e) => setLandmark(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Methods */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#e10600] text-white font-bold">
+                      3
+                    </div>
+                    <h2 className="text-xl font-bold">Payment Methods</h2>
+                  </div>
+
+                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <div className="flex items-center space-x-3 border-2 border-[#e10600] rounded-lg p-4 bg-[#e10600]/5">
+                      <RadioGroupItem value="cod" id="cod" />
+                      <Label htmlFor="cod" className="flex items-center gap-3 cursor-pointer flex-1">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#e10600]/10">
+                          <ShoppingBag className="h-5 w-5 text-[#e10600]" />
+                        </div>
+                        <div>
+                          <p className="font-semibold">Cash on delivery</p>
+                          <p className="text-sm text-muted-foreground">Pay when you receive your order</p>
+                        </div>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column - Order Summary */}
+            <div className="lg:col-span-1">
+              <Card className="sticky top-4">
+                <CardContent className="p-6 space-y-6">
+                  <h2 className="text-xl font-bold">Order Summary</h2>
+
+                  {/* Cart Items */}
+                  <div className="space-y-4">
+                    {cartItems.map((item) => (
+                      <div key={item.id} className="flex gap-3">
+                        <div className="relative w-16 h-16 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
+                          {item.image_url ? (
+                            <Image src={item.image_url} alt={item.name} fill className="object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ShoppingBag className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="absolute -top-1 -right-1 bg-[#e10600] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            {item.quantity}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{item.name}</p>
+                          {item.size && <p className="text-xs text-muted-foreground">Variant: {item.size}</p>}
+                          <p className="text-sm font-bold text-[#e10600]">
+                            {formatNepaliCurrency(item.price)} × {item.quantity}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t pt-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Sub-total</span>
+                      <span>{formatNepaliCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Delivery Charge</span>
+                      {city ? (
+                        <span className={deliveryCharge === 0 ? "text-green-600" : ""}>
+                          {formatNepaliCurrency(deliveryCharge)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Select city</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-lg font-semibold">Total</span>
+                      <span className="text-2xl font-bold text-[#e10600]">{formatNepaliCurrency(total)}</span>
+                    </div>
+                  </div>
+
+                  {/* Promo Code */}
+                  <div>
+                    <Label htmlFor="promoCode">Promo Code</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id="promoCode"
+                        placeholder="eg: FREE30"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                      />
+                      <Button type="button" onClick={handleApplyPromo} className="bg-[#e10600] hover:bg-[#c00500]">
+                        APPLY
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Place Order Button */}
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full bg-[#e10600] hover:bg-[#c00500]"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Placing Order..." : `Place Order - ${formatNepaliCurrency(total)}`}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

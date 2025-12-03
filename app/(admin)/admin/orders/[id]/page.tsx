@@ -19,6 +19,7 @@ import { ArrowLeft, Package, Save, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { ProductSelector } from "@/components/admin/ProductSelector";
+import { createGaaubesiOrder } from "@/app/actions/delivery";
 
 interface Product {
   id: string;
@@ -57,6 +58,8 @@ interface Order {
   total: number;
   created_at: string;
   updated_at: string;
+  gaaubesi_order_id?: string | null;
+  sent_to_delivery_at?: string | null;
   order_items: OrderItem[];
 }
 
@@ -64,6 +67,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingToDelivery, setIsSendingToDelivery] = useState(false);
   const [status, setStatus] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
   const [adminNote, setAdminNote] = useState("");
@@ -116,6 +120,57 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       toast.error("Failed to load order");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSendToDelivery = async () => {
+    if (!order) return;
+
+    setIsSendingToDelivery(true);
+    try {
+      const packageType = orderItems
+        .map((item) => `${item.product_name}${item.size ? ` - ${item.size}` : ""} x ${item.quantity}`)
+        .join(", ");
+
+      const result = await createGaaubesiOrder({
+        branch: "HEAD OFFICE",
+        destination_branch: "BARDAGHAT",
+        receiver_name: customerName,
+        receiver_address: shippingAddress,
+        receiver_number: customerPhone,
+        cod_charge: codAmount || calculateTotal(),
+        Package_access: "Can't Open",
+        delivery_type: "Pickup",
+        remarks: adminNote || "",
+        package_type: packageType,
+        order_contact_name: "GearsNp",
+        order_contact_number : "9823832475"
+      });
+
+      if (result.success) {
+        toast.success(`Delivery order created: ${result.order_id || "Success"}`);
+        // Update order with gaaubesi_order_id, timestamp, and change status to shipping
+        await fetch(`/api/orders/${orderId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gaaubesi_order_id: result.order_id,
+            sent_to_delivery_at: new Date().toISOString(),
+            status: "shipping",
+          }),
+        });
+        // Update local status state
+        setStatus("shipping");
+        // Refresh order data
+        fetchOrder(orderId);
+      } else {
+        toast.error(result.message || "Failed to create delivery order");
+      }
+    } catch (error) {
+      console.error("Error sending to delivery:", error);
+      toast.error("Failed to send order to delivery");
+    } finally {
+      setIsSendingToDelivery(false);
     }
   };
 
@@ -260,28 +315,44 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   timeStyle: "short",
                 })}
               </p>
+              {order.gaaubesi_order_id && (
+                <div className="mt-2 text-sm">
+                  <span className="text-green-600 font-medium">✓ Sent to Delivery</span>
+                  {order.sent_to_delivery_at && (
+                    <span className="text-muted-foreground ml-2">
+                      on {new Date(order.sent_to_delivery_at).toLocaleString("en-US", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  )}
+                  <div className="text-muted-foreground">
+                    Delivery Order ID: {order.gaaubesi_order_id}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-end gap-3">
-              <div className="min-w-[160px]">
+              <div className="w-[160px]">
                 <Label htmlFor="status" className="text-xs mb-1 block">Order Status</Label>
                 <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger id="status" className="h-9">
+                  <SelectTrigger id="status" className="h-9 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="confirmed">Confirmed</SelectItem>
                     <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="shipping">Shipping</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="min-w-[160px]">
+              <div className="w-[160px]">
                 <Label htmlFor="payment" className="text-xs mb-1 block">Payment Status</Label>
                 <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                  <SelectTrigger id="payment" className="h-9">
+                  <SelectTrigger id="payment" className="h-9 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -291,6 +362,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   </SelectContent>
                 </Select>
               </div>
+              <Button
+                onClick={handleSendToDelivery}
+                disabled={isSendingToDelivery || !!order.gaaubesi_order_id}
+                variant="outline"
+                className="h-9 whitespace-nowrap"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                {isSendingToDelivery ? "Sending..." : order.gaaubesi_order_id ? "Already Sent" : "Send to Delivery"}
+              </Button>
               <Button
                 onClick={handleSave}
                 disabled={isSaving}

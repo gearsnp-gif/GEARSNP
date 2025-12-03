@@ -58,6 +58,9 @@ export async function POST(request: Request) {
       subtotal,
       delivery_charge,
       total,
+      gaaubesi_order_id,
+      sent_to_delivery_at,
+      status,
     } = body;
 
     // Validation
@@ -101,11 +104,13 @@ export async function POST(request: Request) {
         shipping_address,
         notes: order_note,
         payment_status: 'unpaid',
-        status: 'pending',
+        status: status || 'pending',
         subtotal,
         shipping_fee: delivery_charge || 0,
         discount_amount: 0,
         total,
+        gaaubesi_order_id: gaaubesi_order_id || null,
+        sent_to_delivery_at: sent_to_delivery_at || null,
       })
       .select()
       .single();

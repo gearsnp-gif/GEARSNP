@@ -228,7 +228,7 @@ export interface Database {
           id: string;
           order_number: string;
           user_id: string | null;
-          status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+          status: 'pending' | 'confirmed' | 'processing' | 'shipping' | 'delivered' | 'cancelled';
           payment_status: 'unpaid' | 'paid' | 'refunded';
           subtotal: number;
           shipping_fee: number;
@@ -248,7 +248,7 @@ export interface Database {
           id?: string;
           order_number?: string;
           user_id?: string | null;
-          status?: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+          status?: 'pending' | 'confirmed' | 'processing' | 'shipping' | 'delivered' | 'cancelled';
           payment_status?: 'unpaid' | 'paid' | 'refunded';
           subtotal: number;
           shipping_fee?: number;
@@ -268,7 +268,7 @@ export interface Database {
           id?: string;
           order_number?: string;
           user_id?: string | null;
-          status?: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+          status?: 'pending' | 'confirmed' | 'processing' | 'shipping' | 'delivered' | 'cancelled';
           payment_status?: 'unpaid' | 'paid' | 'refunded';
           subtotal?: number;
           shipping_fee?: number;
