@@ -150,15 +150,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       if (result.success) {
         toast.success(`Delivery order created: ${result.order_id || "Success"}`);
         // Update order with gaaubesi_order_id, timestamp, and change status to shipping
-        await fetch(`/api/orders/${orderId}`, {
+        const response = await fetch(`/api/orders/${orderId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             gaaubesi_order_id: result.order_id,
             sent_to_delivery_at: new Date().toISOString(),
             status: "shipping",
+            customer_email: customerEmail, // Include email for shipping confirmation
           }),
         });
+        
+        if (response.ok) {
+          toast.success("Shipping confirmation email sent!");
+        }
+        
         // Update local status state
         setStatus("shipping");
         // Refresh order data

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
+import { sendShippingConfirmationEmail } from "@/lib/email";
 
 // GET /api/orders/[id] - Fetch single order
 export async function GET(
@@ -69,6 +70,19 @@ export async function PATCH(
     } = body;
 
     const supabase = await supabaseServer();
+
+    // Check if status is being changed to shipping and we have gaaubesi_order_id
+    const shouldSendShippingEmail = 
+      status === "shipping" && 
+      gaaubesi_order_id && 
+      customer_email;
+    
+    console.log("Email check:", { 
+      status, 
+      gaaubesi_order_id, 
+      customer_email, 
+      shouldSendShippingEmail 
+    });
 
     // Update order fields
     const updateData: Record<string, string | number | null> = {};
@@ -151,6 +165,41 @@ export async function PATCH(
         if (itemError) {
           console.error("Error updating order item:", itemError);
         }
+      }
+    }
+
+    // Send shipping confirmation email if order is being shipped
+    if (shouldSendShippingEmail) {
+      try {
+        // Fetch order items for email
+        const { data: items } = await supabase
+          .from("order_items")
+          .select("product_name, size, quantity, unit_price")
+          .eq("order_id", id);
+
+        if (items && items.length > 0) {
+          await sendShippingConfirmationEmail({
+            orderNumber: order.order_number,
+            customerName: order.customer_name,
+            customerEmail: order.customer_email!,
+            gaaubesiOrderId: gaaubesi_order_id,
+            city: order.city,
+            address: order.shipping_address,
+            landmark: null, // Could extract from shipping_address if needed
+            items: items.map((item) => ({
+              name: item.product_name,
+              price: item.unit_price,
+              quantity: item.quantity,
+              size: item.size,
+            })),
+            total: order.total,
+            shippedAt: sent_to_delivery_at || new Date().toISOString(),
+          });
+          console.log(`Shipping confirmation email sent to ${order.customer_email}`);
+        }
+      } catch (emailError) {
+        // Log error but don't fail the order update
+        console.error("Failed to send shipping confirmation email:", emailError);
       }
     }
 

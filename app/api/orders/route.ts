@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
+import { sendOrderConfirmationEmail } from '@/lib/email';
 
 // GET /api/orders - Fetch orders (admin sees all, users see their own)
 export async function GET() {
@@ -146,6 +147,37 @@ export async function POST(request: Request) {
         { error: "Failed to create order items" },
         { status: 500 }
       );
+    }
+
+    // Send order confirmation email if customer email is provided
+    if (customer_email) {
+      try {
+        await sendOrderConfirmationEmail({
+          orderNumber: order.order_number,
+          customerName: customer_name,
+          customerEmail: customer_email,
+          customerPhone: customer_phone,
+          city,
+          address,
+          landmark,
+          orderNote: order_note,
+          items: items.map((item: any) => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            size: item.size || null,
+            image_url: item.image_url || null,
+          })),
+          subtotal,
+          deliveryCharge: delivery_charge || 0,
+          total,
+          createdAt: order.created_at,
+        });
+        console.log(`Order confirmation email sent to ${customer_email}`);
+      } catch (emailError) {
+        // Log error but don't fail the order creation
+        console.error("Failed to send order confirmation email:", emailError);
+      }
     }
 
     return NextResponse.json({
