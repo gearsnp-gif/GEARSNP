@@ -86,17 +86,12 @@ export default async function TeamDetailPage({
         {products && products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {products.map((product) => {
-              const images = product.product_images.sort(
-                (a: { sort_order: number | null }, b: { sort_order: number | null }) =>
-                  (a.sort_order || 0) - (b.sort_order || 0)
-              );
               return (
                 <ProductCard
                   key={product.id}
                   product={{
                     ...product,
                     team: product.teams,
-                    image_url: images[0]?.image_url || null,
                   }}
                 />
               );

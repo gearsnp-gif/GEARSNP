@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,10 @@ export function EditProductDialog({ product }: EditProductDialogProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [heroImage, setHeroImage] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string>(product.hero_image_url || "");
+  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [additionalPreviews, setAdditionalPreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<{id: string; image_url: string; sort_order: number}[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
 
   const form = useForm<ProductFormValues>({
     // @ts-expect-error - z.coerce creates unknown type but works correctly at runtime
@@ -115,21 +119,24 @@ export function EditProductDialog({ product }: EditProductDialogProps) {
 
   useEffect(() => {
     if (open) {
-      // Fetch categories and teams
+      // Fetch categories, teams, and existing product images
       Promise.all([
         fetch("/api/categories").then((r) => r.json()),
         fetch("/api/teams").then((r) => r.json()),
+        fetch(`/api/products/${product.id}/images`).then((r) => r.json()).catch(() => ({ images: [] })),
       ])
-        .then(([catsData, teamsData]) => {
+        .then(([catsData, teamsData, imagesData]) => {
           setCategories(Array.isArray(catsData) ? catsData : []);
           setTeams(Array.isArray(teamsData) ? teamsData : []);
+          setExistingImages(imagesData.images || []);
         })
         .catch(() => {
           setCategories([]);
           setTeams([]);
+          setExistingImages([]);
         });
     }
-  }, [open]);
+  }, [open, product.id]);
 
   const handleHeroImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -141,6 +148,30 @@ export function EditProductDialog({ product }: EditProductDialogProps) {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleAdditionalImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setAdditionalImages((prev) => [...prev, ...files]);
+      files.forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAdditionalPreviews((prev) => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImages((prev) => prev.filter((_, i) => i !== index));
+    setAdditionalPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (imageId: string) => {
+    setImagesToDelete((prev) => [...prev, imageId]);
+    setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
   };
 
   const onSubmit = async (data: ProductFormValues) => {
@@ -165,6 +196,15 @@ export function EditProductDialog({ product }: EditProductDialogProps) {
         formData.append("hero_image", heroImage);
       }
 
+      // Append additional images
+      additionalImages.forEach((img, index) => {
+        formData.append(`additional_image_${index}`, img);
+      });
+      formData.append("additional_images_count", String(additionalImages.length));
+
+      // Append images to delete
+      formData.append("images_to_delete", JSON.stringify(imagesToDelete));
+
       const response = await fetch(`/api/products/${product.id}`, {
         method: "PATCH",
         body: formData,
@@ -177,6 +217,9 @@ export function EditProductDialog({ product }: EditProductDialogProps) {
 
       toast.success("Product updated successfully");
       setOpen(false);
+      setAdditionalImages([]);
+      setAdditionalPreviews([]);
+      setImagesToDelete([]);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update product");
@@ -423,6 +466,76 @@ export function EditProductDialog({ product }: EditProductDialogProps) {
                 </div>
               </FormControl>
               <FormDescription>Upload new image to replace current one</FormDescription>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Additional Product Images</FormLabel>
+              <FormControl>
+                <div className="space-y-4">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleAdditionalImagesChange}
+                    disabled={loading}
+                  />
+                  
+                  {/* Existing Images */}
+                  {existingImages.length > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Current Images:</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {existingImages.map((img) => (
+                          <div key={img.id} className="relative group">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={img.image_url}
+                              alt="Product image"
+                              className="h-24 w-24 object-cover rounded border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeExistingImage(img.id)}
+                              className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              disabled={loading}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* New Images Preview */}
+                  {additionalPreviews.length > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">New Images:</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {additionalPreviews.map((preview, index) => (
+                          <div key={index} className="relative group">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="h-24 w-24 object-cover rounded border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeAdditionalImage(index)}
+                              className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              disabled={loading}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <FormDescription>Upload multiple product images (optional)</FormDescription>
             </FormItem>
 
             <div className="flex gap-4">

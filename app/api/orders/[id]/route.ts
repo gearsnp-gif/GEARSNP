@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { sendShippingConfirmationEmail } from "@/lib/email";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // GET /api/orders/[id] - Fetch single order
 export async function GET(
   request: Request,

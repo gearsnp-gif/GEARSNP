@@ -52,16 +52,29 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  // Sort images by sort order
-  const productImages = product.product_images.sort(
-    (a: { sort_order: number | null }, b: { sort_order: number | null }) =>
-      (a.sort_order || 0) - (b.sort_order || 0)
-  );
-
-  // Use product_images if available, otherwise fallback to hero_image_url
-  const images = productImages.length > 0 
-    ? productImages 
-    : (product.hero_image_url ? [{ image_url: product.hero_image_url, sort_order: 0 }] : []);
+  // Build image array: hero_image first, then additional product_images sorted by sort_order
+  const images: string[] = [];
+  
+  // Add hero image first if it exists
+  if (product.hero_image_url) {
+    images.push(product.hero_image_url);
+  }
+  
+  // Add additional images from product_images table
+  if (product.product_images.length > 0) {
+    const sortedProductImages = product.product_images
+      .sort((a: { sort_order: number | null }, b: { sort_order: number | null }) =>
+        (a.sort_order || 0) - (b.sort_order || 0)
+      )
+      .map((img: { image_url: string }) => img.image_url);
+    
+    // Only add product_images that are different from hero_image_url
+    sortedProductImages.forEach((url: string) => {
+      if (url !== product.hero_image_url) {
+        images.push(url);
+      }
+    });
+  }
 
   // Get sizes if available
   const sizes = product.has_sizes ? product.product_variants : [];
@@ -96,7 +109,7 @@ export default async function ProductDetailPage({
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Gallery */}
-          <ProductGallery images={images.map((img: { image_url: string }) => img.image_url)} />
+          <ProductGallery images={images} />
 
           {/* Product Info */}
           <ProductInfo
@@ -150,10 +163,13 @@ export default async function ProductDetailPage({
             <h2 className="text-2xl font-bold mb-6">More from {product.team?.name}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {relatedProducts.map((relProduct) => {
-                const relImages = relProduct.product_images.sort(
-                  (a: { sort_order: number | null }, b: { sort_order: number | null }) =>
-                    (a.sort_order || 0) - (b.sort_order || 0)
-                );
+                // Show hero_image_url if available, otherwise first product_image
+                const displayImage = relProduct.hero_image_url || 
+                  relProduct.product_images.sort(
+                    (a: { sort_order: number | null }, b: { sort_order: number | null }) =>
+                      (a.sort_order || 0) - (b.sort_order || 0)
+                  )[0]?.image_url;
+                
                 return (
                   <Link
                     key={relProduct.id}
@@ -162,9 +178,9 @@ export default async function ProductDetailPage({
                   >
                     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
                       <div className="relative aspect-square">
-                        {relImages[0]?.image_url ? (
+                        {displayImage ? (
                           <Image
-                            src={relImages[0].image_url}
+                            src={displayImage}
                             alt={relProduct.name}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-300"

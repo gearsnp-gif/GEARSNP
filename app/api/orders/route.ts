@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // GET /api/orders - Fetch orders (admin sees all, users see their own)
 export async function GET() {
   try {

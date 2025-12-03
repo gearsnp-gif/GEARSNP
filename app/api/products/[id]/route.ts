@@ -45,6 +45,8 @@ export async function PATCH(
     const is_featured = formData.get("is_featured") === "true";
     const is_active = formData.get("is_active") === "true";
     const hero_image = formData.get("hero_image") as File | null;
+    const additional_images_count = parseInt(formData.get("additional_images_count") as string || "0");
+    const images_to_delete = JSON.parse(formData.get("images_to_delete") as string || "[]");
 
     // Prepare update data
     const updateData: Record<string, unknown> = {
@@ -95,6 +97,86 @@ export async function PATCH(
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    // Delete images marked for deletion
+    if (images_to_delete.length > 0) {
+      // Get image URLs to delete from storage
+      const { data: imagesToDelete } = await supabase
+        .from("product_images")
+        .select("image_url")
+        .in("id", images_to_delete);
+
+      if (imagesToDelete && imagesToDelete.length > 0) {
+        // Delete from storage
+        const filesToDelete = imagesToDelete.map((img) => {
+          const urlParts = img.image_url.split("/");
+          return urlParts[urlParts.length - 1];
+        });
+        
+        await supabase.storage
+          .from("product-images")
+          .remove(filesToDelete);
+      }
+
+      // Delete from database
+      await supabase
+        .from("product_images")
+        .delete()
+        .in("id", images_to_delete);
+    }
+
+    // Upload additional images
+    if (additional_images_count > 0) {
+      // Get current max sort_order
+      const { data: existingImages } = await supabase
+        .from("product_images")
+        .select("sort_order")
+        .eq("product_id", id)
+        .order("sort_order", { ascending: false })
+        .limit(1);
+
+      let nextSortOrder = existingImages && existingImages.length > 0 
+        ? (existingImages[0].sort_order || 0) + 1 
+        : 1;
+
+      const additionalImageUploads = [];
+
+      for (let i = 0; i < additional_images_count; i++) {
+        const imageFile = formData.get(`additional_image_${i}`) as File;
+        
+        if (imageFile && imageFile.size > 0) {
+          const fileExt = imageFile.name.split(".").pop();
+          const fileName = `${id}-${Date.now()}_${i}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("product-images")
+            .upload(filePath, imageFile, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("product-images")
+              .getPublicUrl(filePath);
+
+            additionalImageUploads.push({
+              product_id: id,
+              image_url: publicUrl,
+              sort_order: nextSortOrder++,
+            });
+          }
+        }
+      }
+
+      // Insert new images into database
+      if (additionalImageUploads.length > 0) {
+        await supabase
+          .from("product_images")
+          .insert(additionalImageUploads);
+      }
     }
 
     return NextResponse.json(data);
