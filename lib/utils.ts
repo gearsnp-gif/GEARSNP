@@ -17,7 +17,8 @@ export function slugify(text: string): string {
     .replace(/-+$/, '');            // Trim - from end of text
 }
 
-export function formatNepaliCurrency(amount: number): string {
+export function formatNepaliCurrency(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return 'Nrs. 0';
   return `Nrs. ${amount.toLocaleString('en-NP')}`;
 }
 
