@@ -6,7 +6,16 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { X, Search } from "lucide-react";
+import { useState } from "react";
 
 interface ShopFiltersProps {
   categories: { id: string; name: string }[];
@@ -17,11 +26,13 @@ interface ShopFiltersProps {
     sort?: string;
     search?: string;
   };
+  isMobile?: boolean;
 }
 
-export function ShopFilters({ categories, teams, currentFilters }: ShopFiltersProps) {
+export function ShopFilters({ categories, teams, currentFilters, isMobile = false }: ShopFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [searchInput, setSearchInput] = useState(currentFilters.search || "");
 
   const updateFilter = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -39,13 +50,131 @@ export function ShopFilters({ categories, teams, currentFilters }: ShopFiltersPr
   };
 
   const clearAllFilters = () => {
+    setSearchInput("");
     router.push("/shop");
   };
 
-  const hasActiveFilters = currentFilters.category || currentFilters.team || currentFilters.sort;
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    // Update URL immediately as user types
+    updateFilter("search", value || null);
+  };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Already handled by handleSearchChange
+  };
+
+  const hasActiveFilters = currentFilters.category || currentFilters.team || currentFilters.sort || currentFilters.search;
+
+  // Mobile view with dropdowns
+  if (isMobile) {
+    return (
+      <div className="space-y-3">
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search products..."
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </form>
+
+        <div className="flex items-center gap-2 w-full">
+          {/* Sort Dropdown */}
+          <Select
+            value={currentFilters.sort || "newest"}
+            onValueChange={(value) => updateFilter("sort", value === "newest" ? null : value)}
+          >
+            <SelectTrigger className="text-xs h-9 flex-1">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent align="center" side="bottom" sideOffset={4} className="w-[var(--radix-select-trigger-width)]">
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="price-asc">Price: Low</SelectItem>
+              <SelectItem value="price-desc">Price: High</SelectItem>
+              <SelectItem value="name">Name: A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Team Dropdown */}
+          <Select
+            value={currentFilters.team || "all"}
+            onValueChange={(value) => updateFilter("team", value === "all" ? null : value)}
+          >
+            <SelectTrigger className="text-xs h-9 flex-1">
+              <SelectValue placeholder="Team" />
+            </SelectTrigger>
+            <SelectContent align="center" side="bottom" sideOffset={4} className="w-[var(--radix-select-trigger-width)] max-h-[200px]">
+              <SelectItem value="all">All Teams</SelectItem>
+              {teams.map((team) => (
+                <SelectItem key={team.id} value={team.id}>
+                  {team.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Category Dropdown */}
+          <Select
+            value={currentFilters.category || "all"}
+            onValueChange={(value) => updateFilter("category", value === "all" ? null : value)}
+          >
+            <SelectTrigger className="text-xs h-9 flex-1">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent align="center" side="bottom" sideOffset={4} className="w-[var(--radix-select-trigger-width)] max-h-[200px]">
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Clear filters button */}
+        {hasActiveFilters && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearAllFilters}
+            className="w-full text-xs h-8"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Clear All Filters
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop view with cards
   return (
     <div className="space-y-6">
+      {/* Search Bar */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Search</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSearch} className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search products..."
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9"
+            />
+          </form>
+        </CardContent>
+      </Card>
+
       {/* Active Filters */}
       {hasActiveFilters && (
         <Card>

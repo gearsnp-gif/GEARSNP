@@ -12,12 +12,11 @@ export default async function HomePage() {
   // Fetch settings for hero banner and branding
   const { data: settings } = await supabase
     .from("settings")
-    .select("site_name, logo_url, carousel_banner_url, primary_color, hero_title, promo_text")
+    .select("site_name, logo_url, banner_image_url, primary_color, hero_title, promo_text")
     .eq("id", 1)
     .single();
-
   // Fetch featured products, fallback to latest if none featured
-  let { data: featuredProducts, error: featuredError } = await supabase
+  let { data: featuredProducts} = await supabase
     .from("products")
     .select(`
       *,
@@ -28,9 +27,6 @@ export default async function HomePage() {
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(8);
-
-  console.log('Featured query error:', featuredError);
-  console.log('Featured Products:', featuredProducts?.length || 0);
 
   // If no featured products, get latest products
   if (!featuredProducts || featuredProducts.length === 0) {
@@ -67,61 +63,34 @@ export default async function HomePage() {
 
   return (
     <div>
+      {/* Announcement Banner - Only on Home Page */}
+      {settings?.promo_text && (
+        <div className="bg-[#e10600] text-white py-1 px-4 text-center text-xs md:text-sm font-medium">
+          <div className="container mx-auto flex items-center justify-center gap-1">
+            <span>{settings.promo_text}</span>
+          </div>
+        </div>
+      )}
+      
       {/* Hero Section */}
-      <section className="relative h-[500px] bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden">
-        {settings?.carousel_banner_url ? (
+      <section className="relative h-[200px] md:h-[500px] bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden">
+        {settings?.banner_image_url ? (
           <Image
-            src={settings.carousel_banner_url}
+            src={settings.banner_image_url}
             alt="Hero Banner"
             fill
-            className="object-cover opacity-50"
+            className="object-cover"
             priority
           />
         ) : (
           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
         )}
-        <div className="relative container mx-auto px-4 h-full flex items-center">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-[#e10600] text-white px-4 py-2 rounded-full mb-6 text-sm font-medium">
-              {settings?.logo_url ? (
-                <Image
-                  src={settings.logo_url}
-                  alt="Logo"
-                  width={20}
-                  height={20}
-                  className="object-contain"
-                />
-              ) : (
-                <Trophy className="h-4 w-4" />
-              )}
-              {settings?.promo_text || "Premium F1 Merchandise"}
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-              {settings?.hero_title ? (
-                <span dangerouslySetInnerHTML={{ __html: settings.hero_title.replace(/\n/g, '<br />') }} />
-              ) : (
-                <>
-                  Gear Up for<br />
-                  <span style={{ color: settings?.primary_color || "#e10600" }}>Glory</span>
-                </>
-              )}
-            </h1>
-            <p className="text-xl text-gray-300 mb-8">
-              Official {settings?.site_name || "F1"} team merchandise, apparels, and collectibles. Show your passion on and off the track.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/shop">
-                <Button size="lg" className="bg-[#e10600] hover:bg-[#c00500]">
-                  Shop Now <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/teams">
-                <Button size="lg" variant="outline" className="bg-white/10 text-white border-white hover:bg-white/20">
-                  Explore Teams
-                </Button>
-              </Link>
-            </div>
-          </div>
+        <div className="relative container mx-auto px-4 h-full flex items-end justify-center pb-12">
+          <Link href="/shop">
+            <Button className="bg-[#e10600] hover:bg-[#c00500] shadow-2xl">
+              Shop Now <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </section>
 

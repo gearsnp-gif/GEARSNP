@@ -95,9 +95,24 @@ export default async function ShopPage({
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Mobile Filters */}
+        <div className="lg:hidden mb-6">
+          <ShopFilters
+            categories={categories || []}
+            teams={teams || []}
+            currentFilters={{
+              category: params.category,
+              team: params.team,
+              sort: params.sort,
+              search: params.search,
+            }}
+            isMobile
+          />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
-          <aside className="lg:col-span-1">
+          {/* Desktop Filters Sidebar */}
+          <aside className="hidden lg:block lg:col-span-1">
             <ShopFilters
               categories={categories || []}
               teams={teams || []}
@@ -114,7 +129,7 @@ export default async function ShopPage({
           <div className="lg:col-span-3">
             {products && products.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {products.map((product) => {
                     const images = product.product_images.sort(
                       (a: { sort_order: number | null }, b: { sort_order: number | null }) =>

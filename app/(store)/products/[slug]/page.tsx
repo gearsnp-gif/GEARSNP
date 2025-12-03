@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ProductGallery } from "@/components/store/ProductGallery";
-import { AddToCartButton } from "@/components/store/AddToCartButton";
+import { ProductInfo } from "@/components/store/ProductInfo";
 import { Price } from "@/components/store/Price";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,18 +52,16 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  console.log('Product data:', { 
-    name: product.name, 
-    price: product.price, 
-    compare_at_price: product.compare_at_price,
-    priceType: typeof product.price 
-  });
-
   // Sort images by sort order
-  const images = product.product_images.sort(
+  const productImages = product.product_images.sort(
     (a: { sort_order: number | null }, b: { sort_order: number | null }) =>
       (a.sort_order || 0) - (b.sort_order || 0)
   );
+
+  // Use product_images if available, otherwise fallback to hero_image_url
+  const images = productImages.length > 0 
+    ? productImages 
+    : (product.hero_image_url ? [{ image_url: product.hero_image_url, sort_order: 0 }] : []);
 
   // Get sizes if available
   const sizes = product.has_sizes ? product.product_variants : [];
@@ -101,114 +99,49 @@ export default async function ProductDetailPage({
           <ProductGallery images={images.map((img: { image_url: string }) => img.image_url)} />
 
           {/* Product Info */}
-          <div className="space-y-6">
-            {/* Team Badge */}
-            {product.team && (
-              <Link href={`/teams/${product.team.slug}`}>
-                <div className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  {product.team.logo_url && (
-                    <Image
-                      src={product.team.logo_url}
-                      alt={product.team.name}
-                      width={24}
-                      height={24}
-                      className="object-contain"
-                    />
-                  )}
-                  <span className="text-sm font-medium">{product.team.name}</span>
-                </div>
-              </Link>
-            )}
+          <ProductInfo
+            product={{
+              id: product.id,
+              name: product.name,
+              description: product.description,
+              base_price: product.base_price,
+              compare_at_price: product.compare_at_price,
+              stock: product.stock,
+              is_featured: product.is_featured,
+              has_sizes: product.has_sizes,
+              hero_image_url: product.hero_image_url,
+              team: product.team,
+              category: product.category,
+            }}
+            sizes={sizes.map((s: any) => ({
+              id: s.id,
+              size: s.size,
+              stock: s.stock,
+              price_modifier: s.price_modifier || 0,
+            }))}
+          />
+        </div>
 
-            {/* Product Title & Badges */}
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">{product.name}</h1>
-              <div className="flex flex-wrap gap-2">
-                {product.is_featured && (
-                  <Badge className="bg-[#e10600]">Featured</Badge>
-                )}
-                {product.stock_quantity === 0 && (
-                  <Badge variant="secondary">Out of Stock</Badge>
-                )}
-                {product.category && (
-                  <Badge variant="outline">{product.category.name}</Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Price */}
-            <div className="space-y-2">
-              <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-bold">
-                  <Price amount={product.price} />
-                </span>
-                {product.compare_at_price && product.compare_at_price > product.price && (
-                  <span className="text-xl text-muted-foreground line-through">
-                    <Price amount={product.compare_at_price} />
-                  </span>
-                )}
-              </div>
-              {product.compare_at_price && product.compare_at_price > product.price && (
-                <p className="text-sm text-[#e10600] font-medium">
-                  Save {Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)}%
-                </p>
-              )}
-            </div>
-
-            {/* Stock Status */}
-            {product.stock_quantity > 0 && product.stock_quantity <= 10 && (
-              <p className="text-sm text-orange-600">
-                Only {product.stock_quantity} left in stock!
-              </p>
-            )}
-
-            {/* Description */}
-            {product.description && (
-              <div>
-                <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {product.description}
-                </p>
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Add to Cart */}
-            <AddToCartButton
-              product={{
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                stock_quantity: product.stock_quantity,
-                has_sizes: product.has_sizes,
-                sizes: sizes,
-                image_url: images[0]?.image_url || null,
-              }}
-            />
-
-            {/* Features */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="flex flex-col items-center text-center p-4">
-                  <Package className="h-8 w-8 mb-2 text-[#e10600]" />
-                  <p className="text-sm font-medium">Premium Quality</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="flex flex-col items-center text-center p-4">
-                  <Truck className="h-8 w-8 mb-2 text-[#e10600]" />
-                  <p className="text-sm font-medium">Fast Delivery</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="flex flex-col items-center text-center p-4">
-                  <ShieldCheck className="h-8 w-8 mb-2 text-[#e10600]" />
-                  <p className="text-sm font-medium">Secure Payment</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+        {/* Features */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+          <Card>
+            <CardContent className="flex flex-col items-center text-center p-4">
+              <Package className="h-8 w-8 mb-2 text-[#e10600]" />
+              <p className="text-sm font-medium">Premium Quality</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center text-center p-4">
+              <Truck className="h-8 w-8 mb-2 text-[#e10600]" />
+              <p className="text-sm font-medium">Fast Delivery</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center text-center p-4">
+              <ShieldCheck className="h-8 w-8 mb-2 text-[#e10600]" />
+              <p className="text-sm font-medium">Secure Payment</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Related Products */}
@@ -246,7 +179,7 @@ export default async function ProductDetailPage({
                         <h3 className="font-medium truncate group-hover:text-[#e10600] transition-colors">
                           {relProduct.name}
                         </h3>
-                        <Price amount={relProduct.price} />
+                        <Price amount={relProduct.base_price} />
                       </CardContent>
                     </Card>
                   </Link>

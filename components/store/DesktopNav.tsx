@@ -43,8 +43,8 @@ export function DesktopNav({ settings }: DesktopNavProps) {
               <Image
                 src={settings.logo_url}
                 alt={settings.site_name || "GearsNP"}
-                width={40}
-                height={40}
+                width={300}
+                height={100}
                 className="object-contain"
               />
             ) : (

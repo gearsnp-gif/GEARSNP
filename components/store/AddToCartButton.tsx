@@ -11,22 +11,31 @@ interface AddToCartButtonProps {
   product: {
     id: string;
     name: string;
-    price: number;
+    base_price: number;
     stock_quantity: number;
     has_sizes: boolean;
     sizes: Array<{
       id: string;
       size: string;
-      stock_quantity: number;
+      stock: number;
+      price_modifier: number;
     }>;
     image_url: string | null;
   };
+  onSizeChange?: (size: string) => void;
 }
 
-export function AddToCartButton({ product }: AddToCartButtonProps) {
+export function AddToCartButton({ product, onSizeChange }: AddToCartButtonProps) {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+
+  const handleSizeChange = (size: string) => {
+    setSelectedSize(size);
+    if (onSizeChange) {
+      onSizeChange(size);
+    }
+  };
 
   const handleAddToCart = () => {
     // Validate size selection if product has sizes
@@ -45,7 +54,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       id: product.has_sizes ? `${product.id}-${selectedSize}` : product.id,
       productId: product.id,
       name: product.name,
-      price: product.price,
+      price: product.base_price,
       quantity: quantity,
       size: selectedSize || null,
       image_url: product.image_url,
@@ -68,9 +77,10 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
     // Trigger custom event to update cart count
     window.dispatchEvent(new Event("cartUpdated"));
 
-    // Show success message
-    toast.success("Added to cart", {
-      description: `${product.name} ${selectedSize ? `(${selectedSize})` : ""} has been added to your cart.`,
+    // Show success message - compact at top
+    toast.success(`✓ ${product.name} ${selectedSize ? `(${selectedSize})` : ""} added to cart`, {
+      position: "top-center",
+      duration: 2000,
     });
 
     setTimeout(() => setIsAdding(false), 1000);
@@ -78,7 +88,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
 
   const isOutOfStock = product.stock_quantity === 0;
   const selectedSizeData = product.sizes.find((s) => s.size === selectedSize);
-  const isSizeOutOfStock = product.has_sizes && selectedSizeData && selectedSizeData.stock_quantity === 0;
+  const isSizeOutOfStock = product.has_sizes && selectedSizeData && selectedSizeData.stock === 0;
 
   return (
     <div className="space-y-4">
@@ -86,26 +96,26 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       {product.has_sizes && product.sizes.length > 0 && (
         <div className="space-y-2">
           <Label className="text-base">Select Size</Label>
-          <RadioGroup value={selectedSize} onValueChange={setSelectedSize}>
-            <div className="grid grid-cols-4 gap-2">
+          <RadioGroup value={selectedSize} onValueChange={handleSizeChange}>
+            <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => (
                 <div key={size.id} className="relative">
                   <RadioGroupItem
                     value={size.size}
                     id={size.id}
-                    disabled={size.stock_quantity === 0}
+                    disabled={size.stock === 0}
                     className="peer sr-only"
                   />
                   <Label
                     htmlFor={size.id}
-                    className={`flex items-center justify-center rounded-md border-2 border-muted py-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#e10600] peer-data-[state=checked]:bg-[#e10600]/10 [&:has([data-state=checked])]:border-[#e10600] cursor-pointer transition-colors ${
-                      size.stock_quantity === 0 ? "opacity-50 cursor-not-allowed" : ""
+                    className={`flex items-center justify-center rounded-md border-2 border-muted px-6 py-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#e10600] peer-data-[state=checked]:bg-[#e10600]/10 [&:has([data-state=checked])]:border-[#e10600] cursor-pointer transition-colors ${
+                      size.stock === 0 ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
                     {size.size}
                   </Label>
-                  {size.stock_quantity === 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                  {size.stock === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-md">
                       <span className="text-xs font-medium">Out</span>
                     </div>
                   )}

@@ -1,12 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { supabaseServer } from "@/lib/supabase/server";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const formula1 = localFont({
+  src: [
+    {
+      path: "../public/fonts/formula1-display.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/formula1-bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-formula1",
+  display: "swap",
+  fallback: ['system-ui', 'sans-serif'],
 });
 
 const geistMono = Geist_Mono({
@@ -57,7 +71,7 @@ export default async function RootLayout({
         `}</style>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${formula1.variable} ${geistMono.variable} font-sans antialiased`}
       >
         {children}
         <Toaster />

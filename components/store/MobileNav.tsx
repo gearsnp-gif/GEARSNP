@@ -50,13 +50,15 @@ export function MobileNav() {
                 isActive ? "text-[#e10600]" : "text-muted-foreground hover:text-[#e10600]"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <div className="relative">
+                <Icon className="h-5 w-5" />
+                {item.badge !== undefined && item.badge > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-4 min-w-[16px] flex items-center justify-center p-0 px-1 text-[10px] bg-[#e10600]">
+                    {item.badge}
+                  </Badge>
+                )}
+              </div>
               <span className="text-xs">{item.label}</span>
-              {item.badge && item.badge > 0 && (
-                <Badge className="absolute top-2 right-1/4 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#e10600]">
-                  {item.badge}
-                </Badge>
-              )}
             </Link>
           );
         })}
