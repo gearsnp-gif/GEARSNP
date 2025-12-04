@@ -184,6 +184,9 @@ export default async function ProductDetailPage({
                             alt={relProduct.name}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                            sizes="(max-width: 768px) 50vw, 25vw"
+                            quality={75}
                           />
                         ) : (
                           <div className="w-full h-full bg-muted flex items-center justify-center">

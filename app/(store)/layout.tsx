@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { DesktopNav } from "@/components/store/DesktopNav";
 import { MobileNav } from "@/components/store/MobileNav";
+import { NavigationProgress } from "@/components/navigation-progress";
 
 export async function generateMetadata(): Promise<Metadata> {
   const supabase = await supabaseServer();
@@ -34,6 +35,7 @@ export default async function StoreLayout({
 
   return (
     <div className="min-h-screen flex flex-col">
+      <NavigationProgress />
       <DesktopNav settings={settings} />
       <main className="flex-1 pb-20 md:pb-0">
         {children}

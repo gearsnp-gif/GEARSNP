@@ -15,6 +15,33 @@ import { toast } from "sonner";
 import type { DeliveryRate } from "@/lib/delivery-rates";
 import { CitySelector } from "@/components/store/CitySelector";
 
+function RacingLightsOverlay() {
+  const [activeLight, setActiveLight] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveLight((prev) => (prev < 5 ? prev + 1 : 0));
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex gap-4">
+      {[0, 1, 2, 3, 4].map((light) => (
+        <div
+          key={light}
+          className={`w-16 h-16 rounded-full border-4 border-gray-700 transition-all duration-200 ${
+            light < activeLight
+              ? "bg-[#e10600] shadow-[0_0_30px_rgba(225,6,0,0.9)]"
+              : "bg-gray-800"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
 interface CartItem {
   id: string;
   productId: string;
@@ -137,6 +164,14 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Racing Lights Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-6">
+          <RacingLightsOverlay />
+          <p className="text-white text-xl font-bold tracking-wider">PLACING ORDER...</p>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="bg-muted/30 border-b">
         <div className="container mx-auto px-4 py-4">
@@ -374,7 +409,7 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
                     className="w-full bg-[#e10600] hover:bg-[#c00500]"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Placing Order..." : `Place Order - ${formatNepaliCurrency(total)}`}
+                    {isSubmitting ? "Processing..." : `Place Order - ${formatNepaliCurrency(total)}`}
                   </Button>
                 </CardContent>
               </Card>
