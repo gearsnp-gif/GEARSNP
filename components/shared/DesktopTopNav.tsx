@@ -46,9 +46,6 @@ export default function DesktopTopNav() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            <button className="p-2 hover:text-primary transition-colors">
-              <Search className="h-5 w-5" />
-            </button>
             <Link href="/cart" className="p-2 hover:text-primary transition-colors relative">
               <ShoppingCart className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center">

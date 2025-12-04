@@ -1,5 +1,4 @@
 "use client";
-// @ts-nocheck - z.coerce number coercion causes type inference issues but works correctly at runtime
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";

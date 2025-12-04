@@ -27,6 +27,33 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Check Content-Type to determine how to parse the request
+    const contentType = request.headers.get("content-type") || "";
+    
+    // Handle JSON requests (for simple updates like has_sizes flag)
+    if (contentType.includes("application/json")) {
+      const body = await request.json();
+      
+      const updateData: Record<string, unknown> = {
+        ...body,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from("products")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+
+      return NextResponse.json(data);
+    }
+
+    // Handle FormData requests (for full product updates with images)
     const formData = await request.formData();
 
     // Extract form data

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // GET /api/products/[id]/variants - Fetch all variants for a product
 export async function GET(
   request: NextRequest,
@@ -56,7 +59,9 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { variants } = await request.json();
+    // Parse request body
+    const body = await request.text();
+    const { variants } = JSON.parse(body);
 
     // Delete existing variants
     await supabase

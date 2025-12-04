@@ -1,12 +1,11 @@
 "use client";
-// @ts-nocheck - z.coerce number coercion causes type inference issues but works correctly at runtime
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, X, Upload } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
