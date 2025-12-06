@@ -162,7 +162,7 @@ export default function OrdersPage() {
           receiver_number: order.customer_phone,
           cod_charge: order.cod_amount || order.total,
           Package_access: "Can't Open",
-          delivery_type: "Drop Off",
+          delivery_type: "Pickup",
           remarks: order.admin_note || "",
           package_type: packageType,
           order_contact_name: "GearsNp",
