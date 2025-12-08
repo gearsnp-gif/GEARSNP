@@ -32,9 +32,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const supabase = await supabaseServer();
   const { data: settings } = await supabase
     .from("settings")
-    .select("site_name, favicon_url")
+    .select("site_name, favicon_url, og_image_url")
     .eq("id", 1)
     .single();
+
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gearsnp.com";
+  const ogImage = settings?.og_image_url || `${siteUrl}/og-image.jpg`;
 
   return {
     title: `${settings?.site_name || "GearsNP"} - Premium F1 Gear`,
@@ -42,6 +45,29 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: settings?.favicon_url || "/favicon.ico",
     },
+    openGraph: {
+      title: `${settings?.site_name || "GearsNP"} - Premium F1 Gear`,
+      description: "Shop premium F1 merchandise and team gear",
+      url: siteUrl,
+      siteName: settings?.site_name || "GearsNP",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${settings?.site_name || "GearsNP"} - Premium F1 Gear`,
+        },
+      ],
+      locale: "en_US",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${settings?.site_name || "GearsNP"} - Premium F1 Gear`,
+      description: "Shop premium F1 merchandise and team gear",
+      images: [ogImage],
+    },
+    metadataBase: new URL(siteUrl),
   };
 }
 

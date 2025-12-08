@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
+"use client";
+
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   LayoutDashboard,
@@ -11,48 +12,48 @@ import {
   Truck,
   Calendar,
   Settings,
+  Menu,
+  X,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const supabase = await supabaseServer();
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("site_name, favicon_url")
-    .eq("id", 1)
-    .single();
-
-  return {
-    title: `Admin Dashboard - ${settings?.site_name || "GearsNP"}`,
-    description: `${settings?.site_name || "GearsNP"} Admin Portal`,
-    icons: {
-      icon: settings?.favicon_url || "/favicon.ico",
-    },
-  };
-}
-
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+  const pathname = usePathname();
+  const router = useRouter();
 
-  // Redirect to login if not authenticated
-  if (!user) {
-    redirect("/admin-login");
-  }
+  useEffect(() => {
+    // Fetch settings
+    fetch("/api/settings")
+      .then(res => res.json())
+      .then(data => setSettings(data))
+      .catch(console.error);
+  }, []);
 
-  // Fetch settings for logo and colors
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("site_name, logo_url, primary_color, secondary_color")
-    .eq("id", 1)
-    .single();
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
 
   const siteName = settings?.site_name || "GearsNP";
   const logoUrl = settings?.logo_url;
   const primaryColor = settings?.primary_color || "#dc2626";
+
+  const menuItems = [
+    { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Categories', href: '/admin/categories', icon: FolderOpen },
+    { name: 'Teams', href: '/admin/teams', icon: Flag },
+    { name: 'Products', href: '/admin/products', icon: Package },
+    { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
+    { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
+    { name: 'Events', href: '/admin/events', icon: Calendar },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
+  ];
 
   return (
     <>
@@ -67,10 +68,49 @@ export default async function AdminLayout({
           background-color: ${primaryColor};
         }
       `}</style>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-background overflow-hidden">
+        {/* Mobile Header */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border h-16 flex items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            {logoUrl ? (
+              <Image
+                src={logoUrl}
+                alt={siteName}
+                width={80}
+                height={40}
+                className="object-contain"
+              />
+            ) : (
+              <h1 className="text-lg font-bold admin-primary">{siteName}</h1>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          >
+            {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
+        </div>
+
+        {/* Overlay */}
+        {isSidebarOpen && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* Sidebar */}
-        <aside className="w-64 border-r border-border bg-card">
-          <div className="p-6 border-b border-border">
+        <aside
+          className={`
+            fixed lg:static inset-y-0 left-0 z-50
+            w-64 border-r border-border bg-card
+            transform transition-transform duration-200 ease-in-out
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}
+        >
+          <div className="p-6 border-b border-border hidden lg:block">
             {logoUrl ? (
               <div className="flex items-center gap-3">
                 <Image
@@ -92,23 +132,19 @@ export default async function AdminLayout({
               </div>
             )}
           </div>
-          <nav className="p-4 space-y-2">
-            {[
-              { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-              { name: 'Categories', href: '/admin/categories', icon: FolderOpen },
-              { name: 'Teams', href: '/admin/teams', icon: Flag },
-              { name: 'Products', href: '/admin/products', icon: Package },
-              { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-              { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
-              { name: 'Events', href: '/admin/events', icon: Calendar },
-              { name: 'Settings', href: '/admin/settings', icon: Settings },
-            ].map((item) => {
+          <nav className="p-4 space-y-2 mt-16 lg:mt-0">
+            {menuItems.map((item) => {
               const Icon = item.icon;
+              const isActive = pathname === item.href;
               return (
                 <a
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-accent transition-colors"
+                  className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'hover:bg-accent'
+                  }`}
                 >
                   <Icon className="h-5 w-5" />
                   <span>{item.name}</span>
@@ -119,7 +155,7 @@ export default async function AdminLayout({
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto mt-16 lg:mt-0">
           {children}
         </main>
       </div>

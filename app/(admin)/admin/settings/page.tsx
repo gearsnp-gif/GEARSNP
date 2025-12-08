@@ -44,6 +44,8 @@ export default function SettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [faviconImage, setFaviconImage] = useState<File | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string>("");
+  const [ogImage, setOgImage] = useState<File | null>(null);
+  const [ogPreview, setOgPreview] = useState<string>("");
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -90,6 +92,10 @@ export default function SettingsPage() {
           // Set favicon preview if exists
           if (data.favicon_url) {
             setFaviconPreview(data.favicon_url);
+          }
+          // Set OG image preview if exists
+          if (data.og_image_url) {
+            setOgPreview(data.og_image_url);
           }
         }
       } catch {
@@ -138,11 +144,23 @@ export default function SettingsPage() {
     }
   };
 
+  const handleOgImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setOgImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setOgPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const onSubmit = async (data: SettingsFormValues) => {
     setLoading(true);
     try {
       // If there's any image, use FormData
-      if (bannerImage || logoImage || faviconImage) {
+      if (bannerImage || logoImage || faviconImage || ogImage) {
         const formData = new FormData();
         formData.append("site_name", data.site_name);
         if (data.hero_title) formData.append("hero_title", data.hero_title);
@@ -157,6 +175,7 @@ export default function SettingsPage() {
         if (bannerImage) formData.append("banner_image", bannerImage);
         if (logoImage) formData.append("logo_image", logoImage);
         if (faviconImage) formData.append("favicon_image", faviconImage);
+        if (ogImage) formData.append("og_image", ogImage);
 
         const response = await fetch("/api/settings", {
           method: "PATCH",
@@ -187,6 +206,7 @@ export default function SettingsPage() {
       setBannerImage(null);
       setLogoImage(null);
       setFaviconImage(null);
+      setOgImage(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update settings");
     } finally {
@@ -358,6 +378,37 @@ export default function SettingsPage() {
                 )}
                 <p className="text-sm text-muted-foreground">
                   Browser tab icon (recommended: 32x32px or 64x64px, .ico or .png)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>SEO & Social Sharing</CardTitle>
+              <CardDescription>Image for social media previews (Open Graph)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Open Graph Image</label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleOgImageChange}
+                  disabled={loading}
+                />
+                {ogPreview && (
+                  <div className="mt-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ogPreview}
+                      alt="OG image preview"
+                      className="w-full max-w-md h-auto object-contain rounded border"
+                    />
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Social media preview image when your site is shared on Facebook, Twitter, WhatsApp, etc. (recommended: 1200x630px)
                 </p>
               </div>
             </CardContent>

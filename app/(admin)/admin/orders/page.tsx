@@ -3,9 +3,15 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,6 +100,27 @@ export default function OrdersPage() {
         return "bg-red-500";
       default:
         return "bg-gray-500";
+    }
+  };
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        toast.success("Order status updated successfully");
+        fetchOrders();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update order status");
     }
   };
 
@@ -211,62 +238,63 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Orders</h1>
-        <p className="text-muted-foreground">Manage customer orders</p>
+    <div className="p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Orders</h1>
+        <p className="text-muted-foreground text-sm md:text-base">Manage customer orders</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold">
+          <CardContent className="p-4 md:p-6">
+            <div className="text-xl md:text-2xl font-bold">
               {orders?.filter((o) => o.status === "pending").length || 0}
             </div>
-            <p className="text-sm text-muted-foreground">Pending Orders</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Pending</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold">
+          <CardContent className="p-4 md:p-6">
+            <div className="text-xl md:text-2xl font-bold">
               {orders?.filter((o) => o.status === "confirmed" || o.status === "processing").length || 0}
             </div>
-            <p className="text-sm text-muted-foreground">Processing</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Processing</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold">
+          <CardContent className="p-4 md:p-6">
+            <div className="text-xl md:text-2xl font-bold">
               {orders?.filter((o) => o.status === "delivered").length || 0}
             </div>
-            <p className="text-sm text-muted-foreground">Delivered</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Delivered</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold">
+          <CardContent className="p-4 md:p-6">
+            <div className="text-lg md:text-2xl font-bold">
               {formatNepaliCurrency(
                 orders?.reduce((sum, o) => sum + parseFloat(o.total.toString()), 0) || 0
               )}
             </div>
-            <p className="text-sm text-muted-foreground">Total Revenue</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Revenue</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <CardTitle>All Orders</CardTitle>
-              <CardDescription>View and manage all customer orders</CardDescription>
+              <CardTitle className="text-xl md:text-2xl">All Orders</CardTitle>
+              <CardDescription className="text-xs md:text-sm">View and manage all customer orders</CardDescription>
             </div>
             {selectedOrders.size > 0 && (
               <Button
                 onClick={handleBulkSendToDelivery}
                 disabled={isSending}
-                className="bg-[#e10600] hover:bg-[#c00500]"
+                className="bg-[#e10600] hover:bg-[#c00500] w-full md:w-auto"
+                size="sm"
               >
                 <Package className="h-4 w-4 mr-2" />
                 {isSending ? "Sending..." : `Send ${selectedOrders.size} to Delivery`}
@@ -275,6 +303,8 @@ export default function OrdersPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -328,9 +358,52 @@ export default function OrdersPage() {
                       {formatNepaliCurrency(parseFloat((order.cod_amount || order.total).toString()))}
                     </TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </Badge>
+                      <Select
+                        value={order.status}
+                        onValueChange={(value) => handleStatusChange(order.id, value)}
+                      >
+                        <SelectTrigger className={`w-[140px] ${getStatusColor(order.status)} text-white border-0 hover:opacity-90`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending" className="focus:bg-yellow-100">
+                            <span className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                              Pending
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="confirmed" className="focus:bg-blue-100">
+                            <span className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                              Confirmed
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="processing" className="focus:bg-purple-100">
+                            <span className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                              Processing
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="shipping" className="focus:bg-indigo-100">
+                            <span className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                              Shipping
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="delivered" className="focus:bg-green-100">
+                            <span className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                              Delivered
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="cancelled" className="focus:bg-red-100">
+                            <span className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                              Cancelled
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       {new Date(order.created_at).toLocaleDateString("en-US", {
@@ -361,6 +434,131 @@ export default function OrdersPage() {
               )}
             </TableBody>
           </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {!orders || orders.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                No orders yet
+              </div>
+            ) : (
+              orders.map((order) => (
+                <Card key={order.id} className="border-l-4" style={{ borderLeftColor: getStatusColor(order.status).replace('bg-', '#') }}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={selectedOrders.has(order.id)}
+                          onCheckedChange={() => toggleOrderSelection(order.id)}
+                          disabled={!!order.gaaubesi_order_id}
+                        />
+                        <div>
+                          <div className="font-medium text-base">#{order.order_number}</div>
+                          <div className="text-sm text-muted-foreground">{order.customer_name}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Link href={`/admin/orders/${order.id}`}>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteDialog({ open: true, orderId: order.id, orderNumber: order.order_number })}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Phone:</span>
+                        <span>{order.customer_phone}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Items:</span>
+                        <span className="text-right">
+                          {order.order_items?.map((item, idx) => (
+                            <div key={item.id} className="text-xs">
+                              {item.product_name}{item.size ? ` - ${item.size}` : ""} x {item.quantity}
+                            </div>
+                          ))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-semibold">
+                        <span className="text-muted-foreground">COD:</span>
+                        <span>{formatNepaliCurrency(parseFloat((order.cod_amount || order.total).toString()))}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Select
+                          value={order.status}
+                          onValueChange={(value) => handleStatusChange(order.id, value)}
+                        >
+                          <SelectTrigger className={`w-[120px] h-8 ${getStatusColor(order.status)} text-white border-0 text-xs`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending" className="text-xs">
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                Pending
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="confirmed" className="text-xs">
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                Confirmed
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="processing" className="text-xs">
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                                Processing
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="shipping" className="text-xs">
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                Shipping
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="delivered" className="text-xs">
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                Delivered
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="cancelled" className="text-xs">
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                Cancelled
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Date:</span>
+                        <span className="text-xs">
+                          {new Date(order.created_at).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 

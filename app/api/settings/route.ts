@@ -138,6 +138,29 @@ export async function PATCH(request: NextRequest) {
         updateData.favicon_url = publicUrl;
       }
 
+      // Handle OG image upload if provided
+      const og_image = formData.get("og_image") as File | null;
+      if (og_image && og_image.size > 0) {
+        const fileExt = og_image.name.split(".").pop();
+        const fileName = `og-image-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("event-banners")
+          .upload(filePath, og_image, {
+            cacheControl: "3600",
+            upsert: true,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("event-banners").getPublicUrl(filePath);
+
+        updateData.og_image_url = publicUrl;
+      }
+
       // Update settings (always id = 1)
       const { data, error } = await supabase
         .from("settings")
