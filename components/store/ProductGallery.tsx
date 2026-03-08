@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
+import { getImageBySize, getOptimizedImageUrl } from "@/lib/image-utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -67,13 +68,12 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           </div>
         )}
         <Image
-          src={images[selectedIndex]}
+          src={getImageBySize(images[selectedIndex], 'large')}
           alt={`Product image ${selectedIndex + 1}`}
           fill
           className="object-cover"
           priority
-          quality={90}
-          onLoadingComplete={() => setImageLoading(false)}
+          onLoad={() => setImageLoading(false)}
           placeholder="blur"
           blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iI2YwZjBmMCIvPjwvc3ZnPg=="
         />
@@ -116,13 +116,11 @@ export function ProductGallery({ images }: ProductGalleryProps) {
               }`}
             >
               <Image
-                src={image}
+                src={getImageBySize(image, 'thumbnail')}
                 alt={`Thumbnail ${index + 1}`}
                 fill
                 className="object-cover"
                 loading="lazy"
-                quality={60}
-                sizes="100px"
               />
             </button>
           ))}

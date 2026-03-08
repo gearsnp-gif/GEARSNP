@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Price } from "./Price";
+import { getImageBySize } from "@/lib/image-utils";
 
 interface ProductCardProps {
   product: {
@@ -26,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="relative aspect-[3/4] overflow-hidden bg-muted">
           {product.hero_image_url ? (
             <Image
-              src={product.hero_image_url}
+              src={getImageBySize(product.hero_image_url, 'card')}
               alt={product.name}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"

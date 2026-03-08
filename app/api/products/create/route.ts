@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
+import { optimizeImage, IMAGE_PRESETS } from "@/lib/image-optimizer";
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,15 +45,19 @@ export async function POST(request: NextRequest) {
 
     // Upload hero image if provided
     if (heroImageFile) {
-      const fileExt = heroImageFile.name.split(".").pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Optimize image before upload
+      const { buffer, fileName, contentType } = await optimizeImage(
+        heroImageFile,
+        IMAGE_PRESETS.hero
+      );
+      const filePath = `hero/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(filePath, heroImageFile, {
-          cacheControl: "3600",
+        .upload(filePath, buffer, {
+          cacheControl: "31536000",
           upsert: false,
+          contentType,
         });
 
       if (uploadError) {
@@ -98,15 +103,19 @@ export async function POST(request: NextRequest) {
       for (let i = 0; i < additionalImagesCount; i++) {
         const imageFile = formData.get(`additional_image_${i}`) as File | null;
         if (imageFile) {
-          const fileExt = imageFile.name.split(".").pop();
-          const fileName = `${Date.now()}_${i}.${fileExt}`;
-          const filePath = `${fileName}`;
+          // Optimize image before upload
+          const { buffer, fileName, contentType } = await optimizeImage(
+            imageFile,
+            IMAGE_PRESETS.gallery
+          );
+          const filePath = `gallery/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
             .from("product-images")
-            .upload(filePath, imageFile, {
-              cacheControl: "3600",
+            .upload(filePath, buffer, {
+              cacheControl: "31536000",
               upsert: false,
+              contentType,
             });
 
           if (!uploadError) {

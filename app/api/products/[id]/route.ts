@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
+import { optimizeImage, IMAGE_PRESETS } from "@/lib/image-optimizer";
 
 // PATCH /api/products/[id] - Update product
 export async function PATCH(
@@ -94,15 +95,19 @@ export async function PATCH(
 
     // Handle hero image upload if provided
     if (hero_image && hero_image.size > 0) {
-      const fileExt = hero_image.name.split(".").pop();
-      const fileName = `${id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Optimize image before upload
+      const { buffer, fileName, contentType } = await optimizeImage(
+        hero_image,
+        IMAGE_PRESETS.hero
+      );
+      const filePath = `hero/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(filePath, hero_image, {
-          cacheControl: "3600",
+        .upload(filePath, buffer, {
+          cacheControl: "31536000",
           upsert: true,
+          contentType,
         });
 
       if (uploadError) throw uploadError;
@@ -173,15 +178,19 @@ export async function PATCH(
         const imageFile = formData.get(`additional_image_${i}`) as File;
         
         if (imageFile && imageFile.size > 0) {
-          const fileExt = imageFile.name.split(".").pop();
-          const fileName = `${id}-${Date.now()}_${i}.${fileExt}`;
-          const filePath = `${fileName}`;
+          // Optimize image before upload
+          const { buffer, fileName, contentType } = await optimizeImage(
+            imageFile,
+            IMAGE_PRESETS.gallery
+          );
+          const filePath = `gallery/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
             .from("product-images")
-            .upload(filePath, imageFile, {
-              cacheControl: "3600",
+            .upload(filePath, buffer, {
+              cacheControl: "31536000",
               upsert: false,
+              contentType,
             });
 
           if (!uploadError) {

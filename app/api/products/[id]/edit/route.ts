@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
+import { optimizeImage, IMAGE_PRESETS } from "@/lib/image-optimizer";
 
 export async function POST(
   request: NextRequest,
@@ -63,16 +64,19 @@ export async function POST(
           .remove([oldFileName]);
       }
 
-      // Upload new image
-      const fileExt = heroImageFile.name.split(".").pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Optimize and upload new image
+      const { buffer, fileName, contentType } = await optimizeImage(
+        heroImageFile,
+        IMAGE_PRESETS.hero
+      );
+      const filePath = `hero/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(filePath, heroImageFile, {
-          cacheControl: "3600",
+        .upload(filePath, buffer, {
+          cacheControl: "31536000",
           upsert: false,
+          contentType,
         });
 
       if (uploadError) {

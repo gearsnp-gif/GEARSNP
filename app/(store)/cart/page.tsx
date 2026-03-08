@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { formatNepaliCurrency } from "@/lib/utils";
+import { getImageBySize } from "@/lib/image-utils";
 
 interface CartItem {
   id: string;
@@ -117,7 +118,7 @@ export default function CartPage() {
                       <div className="relative w-24 h-24 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
                         {item.image_url ? (
                           <Image
-                            src={item.image_url}
+                            src={getImageBySize(item.image_url, 'thumbnail')}
                             alt={item.name}
                             fill
                             className="object-cover"

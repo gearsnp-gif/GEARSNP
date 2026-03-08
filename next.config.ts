@@ -8,10 +8,12 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    // Disable Vercel image optimization - images are optimized at upload time
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'phyydlzwhrxjdcaehzra.supabase.co',
+        hostname: '*.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },

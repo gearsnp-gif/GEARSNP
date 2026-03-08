@@ -14,6 +14,7 @@ import { formatNepaliCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import type { DeliveryRate } from "@/lib/delivery-rates";
 import { CitySelector } from "@/components/store/CitySelector";
+import { getImageBySize } from "@/lib/image-utils";
 
 function RacingLightsOverlay() {
   const [activeLight, setActiveLight] = useState(0);
@@ -341,7 +342,7 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
                       <div key={item.id} className="flex gap-3">
                         <div className="relative w-16 h-16 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
                           {item.image_url ? (
-                            <Image src={item.image_url} alt={item.name} fill className="object-cover" />
+                            <Image src={getImageBySize(item.image_url, 'thumbnail')} alt={item.name} fill className="object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <ShoppingBag className="h-6 w-6 text-muted-foreground" />

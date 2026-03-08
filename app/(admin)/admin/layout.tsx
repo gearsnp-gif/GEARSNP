@@ -14,8 +14,10 @@ import {
   Settings,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase/client";
 
 export default function AdminLayout({
   children,
@@ -43,6 +45,13 @@ export default function AdminLayout({
   const siteName = settings?.site_name || "GearsNP";
   const logoUrl = settings?.logo_url;
   const primaryColor = settings?.primary_color || "#dc2626";
+
+  // Don't show sidebar on login page
+  const isLoginPage = pathname === "/admin/login";
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   const menuItems = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -132,25 +141,39 @@ export default function AdminLayout({
               </div>
             )}
           </div>
-          <nav className="p-4 space-y-2 mt-16 lg:mt-0">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-accent text-accent-foreground font-medium'
-                      : 'hover:bg-accent'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.name}</span>
-                </a>
-              );
-            })}
+          <nav className="p-4 space-y-2 mt-16 lg:mt-0 flex flex-col h-[calc(100%-4rem)] lg:h-[calc(100%-6rem)]">
+            <div className="flex-1 space-y-2">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-accent text-accent-foreground font-medium'
+                        : 'hover:bg-accent'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span>{item.name}</span>
+                  </a>
+                );
+              })}
+            </div>
+            <div className="pt-4 border-t border-border">
+              <button
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  router.push('/admin/login');
+                }}
+                className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors hover:bg-destructive/10 text-destructive w-full"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Logout</span>
+              </button>
+            </div>
           </nav>
         </aside>
 

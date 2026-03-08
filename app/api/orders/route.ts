@@ -153,6 +153,55 @@ export async function POST(request: Request) {
       );
     }
 
+    // Decrease stock for each item
+    for (const item of items) {
+      try {
+        // Check if product has sizes
+        const { data: product } = await supabase
+          .from("products")
+          .select("has_sizes")
+          .eq("id", item.productId)
+          .single();
+
+        if (product?.has_sizes && item.size) {
+          // Decrease stock for specific size variant
+          const { data: variant } = await supabase
+            .from("product_variants")
+            .select("stock")
+            .eq("product_id", item.productId)
+            .eq("size", item.size)
+            .single();
+
+          if (variant) {
+            const newStock = Math.max(0, variant.stock - item.quantity);
+            await supabase
+              .from("product_variants")
+              .update({ stock: newStock })
+              .eq("product_id", item.productId)
+              .eq("size", item.size);
+          }
+        } else {
+          // Decrease stock for product without sizes
+          const { data: productData } = await supabase
+            .from("products")
+            .select("stock")
+            .eq("id", item.productId)
+            .single();
+
+          if (productData) {
+            const newStock = Math.max(0, productData.stock - item.quantity);
+            await supabase
+              .from("products")
+              .update({ stock: newStock })
+              .eq("id", item.productId);
+          }
+        }
+      } catch (stockError) {
+        console.error(`Failed to update stock for product ${item.productId}:`, stockError);
+        // Continue with other items even if one fails
+      }
+    }
+
     // Send order confirmation email if customer email is provided
     if (customer_email) {
       try {
