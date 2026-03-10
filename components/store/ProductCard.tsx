@@ -15,6 +15,7 @@ interface ProductCardProps {
     compare_at_price: number | null;
     stock: number;
     is_featured: boolean;
+    free_delivery?: boolean;
     category?: { name: string } | null;
     team?: { name: string; logo_url: string | null } | null;
   };
@@ -44,8 +45,11 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.is_featured && (
             <Badge className="absolute top-2 right-2 bg-[#e10600]">Featured</Badge>
           )}
+          {product.free_delivery && (
+            <Badge className="absolute top-2 left-2 bg-green-600">Free Delivery</Badge>
+          )}
           {product.stock <= 0 && (
-            <Badge className="absolute top-2 left-2 bg-destructive">Out of Stock</Badge>
+            <Badge className="absolute bottom-2 left-2 bg-destructive">Out of Stock</Badge>
           )}
         </div>
         <CardContent className="p-3">

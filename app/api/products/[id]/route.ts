@@ -72,6 +72,7 @@ export async function PATCH(
     const stock = parseInt(formData.get("stock") as string);
     const is_featured = formData.get("is_featured") === "true";
     const is_active = formData.get("is_active") === "true";
+    const free_delivery = formData.get("free_delivery") === "true";
     const hero_image = formData.get("hero_image") as File | null;
     const additional_images_count = parseInt(formData.get("additional_images_count") as string || "0");
     const images_to_delete = JSON.parse(formData.get("images_to_delete") as string || "[]");
@@ -90,6 +91,7 @@ export async function PATCH(
       stock,
       is_featured,
       is_active,
+      free_delivery,
       updated_at: new Date().toISOString(),
     };
 

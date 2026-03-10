@@ -51,6 +51,7 @@ interface CartItem {
   quantity: number;
   size: string | null;
   image_url: string | null;
+  free_delivery?: boolean;
 }
 
 interface CheckoutFormProps {
@@ -87,7 +88,11 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
   }, [router]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const total = subtotal + deliveryCharge;
+  
+  // Check if all items have free delivery
+  const allFreeDelivery = cartItems.length > 0 && cartItems.every(item => item.free_delivery === true);
+  const effectiveDeliveryCharge = allFreeDelivery ? 0 : deliveryCharge;
+  const total = subtotal + effectiveDeliveryCharge;
 
   const handleCityChange = (selectedCity: string) => {
     setCity(selectedCity);
@@ -130,7 +135,7 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
           payment_method: paymentMethod,
           items: cartItems,
           subtotal,
-          delivery_charge: deliveryCharge,
+          delivery_charge: effectiveDeliveryCharge,
           total,
         }),
       });
@@ -370,9 +375,11 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Delivery Charge</span>
-                      {city ? (
-                        <span className={deliveryCharge === 0 ? "text-green-600" : ""}>
-                          {formatNepaliCurrency(deliveryCharge)}
+                      {allFreeDelivery ? (
+                        <span className="text-green-600 font-medium">FREE</span>
+                      ) : city ? (
+                        <span className={effectiveDeliveryCharge === 0 ? "text-green-600" : ""}>
+                          {formatNepaliCurrency(effectiveDeliveryCharge)}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">Select city</span>

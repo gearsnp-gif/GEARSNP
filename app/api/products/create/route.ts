@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     const stock = parseInt(formData.get("stock") as string);
     const is_featured = formData.get("is_featured") === "true";
     const is_active = formData.get("is_active") === "true";
+    const free_delivery = formData.get("free_delivery") === "true";
     const heroImageFile = formData.get("hero_image") as File | null;
     const additionalImagesCount = parseInt(formData.get("additional_images_count") as string) || 0;
 
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
         hero_image_url,
         is_featured,
         is_active,
+        free_delivery,
       })
       .select()
       .single();

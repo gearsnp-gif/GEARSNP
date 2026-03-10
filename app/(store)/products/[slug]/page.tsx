@@ -122,6 +122,7 @@ export default async function ProductDetailPage({
               stock: product.stock,
               is_featured: product.is_featured,
               has_sizes: product.has_sizes,
+              free_delivery: product.free_delivery || false,
               hero_image_url: product.hero_image_url,
               team: product.team,
               category: product.category,

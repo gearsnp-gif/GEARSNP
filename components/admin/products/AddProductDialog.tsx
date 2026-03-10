@@ -53,6 +53,7 @@ const productSchema = z.object({
   stock: z.coerce.number().int().min(0, "Stock must be 0 or greater"),
   is_featured: z.boolean(),
   is_active: z.boolean(),
+  free_delivery: z.boolean(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -99,6 +100,7 @@ export function AddProductDialog() {
       stock: 0,
       is_featured: false,
       is_active: true,
+      free_delivery: false,
     },
   });
 
@@ -169,6 +171,7 @@ export function AddProductDialog() {
       formData.append("stock", String(data.stock));
       formData.append("is_featured", String(data.is_featured));
       formData.append("is_active", String(data.is_active));
+      formData.append("free_delivery", String(data.free_delivery));
       if (heroImage) {
         formData.append("hero_image", heroImage);
       }
@@ -524,6 +527,26 @@ export function AddProductDialog() {
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="free_delivery"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-green-700 dark:text-green-400">Free Delivery</FormLabel>
+                    <FormDescription>No delivery charge for this product</FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={loading}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end gap-3">
               <Button

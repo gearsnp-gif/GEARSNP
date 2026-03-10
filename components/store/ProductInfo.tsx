@@ -17,6 +17,7 @@ interface ProductInfoProps {
     stock: number;
     is_featured: boolean;
     has_sizes: boolean;
+    free_delivery: boolean;
     hero_image_url: string | null;
     team: {
       name: string;
@@ -63,6 +64,9 @@ export function ProductInfo({ product, sizes }: ProductInfoProps) {
           {product.is_featured && (
             <Badge className="bg-[#e10600]">Featured</Badge>
           )}
+          {product.free_delivery && (
+            <Badge className="bg-green-600">Free Delivery</Badge>
+          )}
           {product.stock === 0 && (
             <Badge variant="secondary">Out of Stock</Badge>
           )}
@@ -108,6 +112,7 @@ export function ProductInfo({ product, sizes }: ProductInfoProps) {
           base_price: product.base_price,
           stock_quantity: product.stock,
           has_sizes: product.has_sizes,
+          free_delivery: product.free_delivery,
           sizes: sizes,
           image_url: product.hero_image_url,
         }}
