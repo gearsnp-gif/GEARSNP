@@ -24,6 +24,8 @@ interface SendOrderConfirmationEmailParams {
   items: OrderItem[];
   subtotal: number;
   deliveryCharge: number;
+  discount?: number;
+  promoCode?: string | null;
   total: number;
   createdAt: string;
 }

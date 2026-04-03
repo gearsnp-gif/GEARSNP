@@ -81,7 +81,7 @@ interface EditProductDialogProps {
     stock: number;
     is_featured: boolean;
     is_active: boolean;
-    free_delivery: boolean;
+    free_delivery?: boolean;
     hero_image_url: string | null;
   };
 }
@@ -115,7 +115,7 @@ export function EditProductDialog({ product }: EditProductDialogProps) {
       stock: product.stock,
       is_featured: product.is_featured,
       is_active: product.is_active,
-      free_delivery: product.free_delivery,
+      free_delivery: product.free_delivery ?? false,
     },
   });
 

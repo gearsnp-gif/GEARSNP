@@ -8,9 +8,9 @@ export interface ImageOptimizeOptions {
 }
 
 const DEFAULT_OPTIONS: ImageOptimizeOptions = {
-  maxWidth: 1200,
-  maxHeight: 1200,
-  quality: 80,
+  maxWidth: 1600,
+  maxHeight: 1600,
+  quality: 90,
   format: 'webp',
 };
 
@@ -32,7 +32,8 @@ export async function optimizeImage(
   const originalName = file.name.replace(/\.[^/.]+$/, '');
   
   // Process with sharp
-  let sharpInstance = sharp(inputBuffer);
+  let sharpInstance = sharp(inputBuffer)
+    .rotate(); // Auto-rotate based on EXIF orientation data
   
   // Get metadata to preserve aspect ratio
   const metadata = await sharpInstance.metadata();
@@ -95,25 +96,25 @@ export async function optimizeImage(
  * Preset configurations for different image types
  */
 export const IMAGE_PRESETS = {
-  // Hero/main product images - higher quality, larger size
+  // Hero/main product images - high quality, larger size
   hero: {
-    maxWidth: 1200,
-    maxHeight: 1200,
-    quality: 85,
+    maxWidth: 1600,
+    maxHeight: 1600,
+    quality: 92,
     format: 'webp' as const,
   },
   // Gallery/additional images
   gallery: {
-    maxWidth: 800,
-    maxHeight: 800,
-    quality: 80,
+    maxWidth: 1200,
+    maxHeight: 1200,
+    quality: 90,
     format: 'webp' as const,
   },
   // Thumbnails (if needed for any purpose)
   thumbnail: {
-    maxWidth: 400,
-    maxHeight: 400,
-    quality: 75,
+    maxWidth: 600,
+    maxHeight: 600,
+    quality: 85,
     format: 'webp' as const,
   },
   // Team logos - smaller, can be PNG for transparency

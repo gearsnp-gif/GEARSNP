@@ -14,7 +14,7 @@ interface AddToCartButtonProps {
     base_price: number;
     stock_quantity: number;
     has_sizes: boolean;
-    free_delivery: boolean;
+    free_delivery?: boolean;
     sizes: Array<{
       id: string;
       size: string;
@@ -59,7 +59,7 @@ export function AddToCartButton({ product, onSizeChange }: AddToCartButtonProps)
       quantity: quantity,
       size: selectedSize || null,
       image_url: product.image_url,
-      free_delivery: product.free_delivery,
+      free_delivery: product.free_delivery ?? false,
     };
 
     // Check if item already exists

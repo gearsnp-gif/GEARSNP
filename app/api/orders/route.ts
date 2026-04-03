@@ -63,6 +63,8 @@ export async function POST(request: Request) {
       subtotal,
       delivery_charge,
       total,
+      promo_code,
+      promo_discount,
       gaaubesi_order_id,
       sent_to_delivery_at,
       status,
@@ -98,6 +100,10 @@ export async function POST(request: Request) {
     }
 
     // Create order
+    const orderNotes = promo_code 
+      ? `${order_note ? order_note + ' | ' : ''}Promo: ${promo_code}`
+      : order_note;
+      
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
@@ -107,12 +113,12 @@ export async function POST(request: Request) {
         customer_phone,
         city,
         shipping_address,
-        notes: order_note,
+        notes: orderNotes,
         payment_status: 'unpaid',
         status: status || 'pending',
         subtotal,
         shipping_fee: delivery_charge || 0,
-        discount_amount: 0,
+        discount_amount: promo_discount || 0,
         total,
         gaaubesi_order_id: gaaubesi_order_id || null,
         sent_to_delivery_at: sent_to_delivery_at || null,
@@ -202,6 +208,16 @@ export async function POST(request: Request) {
       }
     }
 
+    // Increment promo code usage if one was applied
+    if (promo_code && promo_discount > 0) {
+      try {
+        await supabase.rpc('increment_promo_code_usage', { p_code: promo_code });
+      } catch (promoError) {
+        console.error("Failed to increment promo code usage:", promoError);
+        // Don't fail the order creation for this
+      }
+    }
+
     // Send order confirmation email if customer email is provided
     if (customer_email) {
       try {
@@ -223,6 +239,8 @@ export async function POST(request: Request) {
           })),
           subtotal,
           deliveryCharge: delivery_charge || 0,
+          discount: promo_discount || 0,
+          promoCode: promo_code || null,
           total,
           createdAt: order.created_at,
         });

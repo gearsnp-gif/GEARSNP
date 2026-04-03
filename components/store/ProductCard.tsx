@@ -42,9 +42,6 @@ export function ProductCard({ product }: ProductCardProps) {
               No Image
             </div>
           )}
-          {product.is_featured && (
-            <Badge className="absolute top-2 right-2 bg-[#e10600]">Featured</Badge>
-          )}
           {product.free_delivery && (
             <Badge className="absolute top-2 left-2 bg-green-600">Free Delivery</Badge>
           )}

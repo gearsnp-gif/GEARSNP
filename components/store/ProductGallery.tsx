@@ -44,7 +44,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
 
   if (!images || images.length === 0) {
     return (
-      <Card className="aspect-square bg-muted flex items-center justify-center">
+      <Card className="aspect-[4/5] bg-muted flex items-center justify-center">
         <span className="text-muted-foreground">No image available</span>
       </Card>
     );
@@ -61,7 +61,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <Card className="relative aspect-square overflow-hidden bg-muted group">
+      <Card className="relative aspect-[4/5] overflow-hidden bg-muted group">
         {imageLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
             <RacingLights />

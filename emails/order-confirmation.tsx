@@ -32,6 +32,8 @@ interface OrderConfirmationEmailProps {
   items: OrderItem[];
   subtotal: number;
   deliveryCharge: number;
+  discount?: number;
+  promoCode?: string | null;
   total: number;
   createdAt: string;
 }
@@ -47,6 +49,8 @@ export default function OrderConfirmationEmail({
   items,
   subtotal,
   deliveryCharge,
+  discount = 0,
+  promoCode,
   total,
   createdAt,
 }: OrderConfirmationEmailProps) {
@@ -120,6 +124,18 @@ export default function OrderConfirmationEmail({
                 <Text style={summaryValue}>{formatNepaliCurrency(subtotal)}</Text>
               </Column>
             </Row>
+            {discount > 0 && (
+              <Row style={summaryRow}>
+                <Column>
+                  <Text style={{ ...summaryLabel, color: '#16a34a' }}>
+                    Discount {promoCode && `(${promoCode})`}
+                  </Text>
+                </Column>
+                <Column>
+                  <Text style={{ ...summaryValue, color: '#16a34a' }}>-{formatNepaliCurrency(discount)}</Text>
+                </Column>
+              </Row>
+            )}
             <Row style={summaryRow}>
               <Column>
                 <Text style={summaryLabel}>Delivery Charge</Text>

@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   LogOut,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
@@ -60,6 +61,7 @@ export default function AdminLayout({
     { name: 'Products', href: '/admin/products', icon: Package },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
     { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
+    { name: 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
     { name: 'Events', href: '/admin/events', icon: Calendar },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];

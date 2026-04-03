@@ -75,6 +75,16 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [promoCode, setPromoCode] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState(0);
+  
+  // Promo code state
+  const [promoValidating, setPromoValidating] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<{
+    id: string;
+    code: string;
+    discount_type: "percentage" | "fixed";
+    discount_value: number;
+    discount_amount: number;
+  } | null>(null);
 
   useEffect(() => {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -92,7 +102,10 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
   // Check if all items have free delivery
   const allFreeDelivery = cartItems.length > 0 && cartItems.every(item => item.free_delivery === true);
   const effectiveDeliveryCharge = allFreeDelivery ? 0 : deliveryCharge;
-  const total = subtotal + effectiveDeliveryCharge;
+  
+  // Calculate discount amount based on current subtotal
+  const discountAmount = appliedPromo ? appliedPromo.discount_amount : 0;
+  const total = subtotal - discountAmount + effectiveDeliveryCharge;
 
   const handleCityChange = (selectedCity: string) => {
     setCity(selectedCity);
@@ -100,10 +113,46 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
     setDeliveryCharge(rate?.rate || 0);
   };
 
-  const handleApplyPromo = () => {
-    if (promoCode.trim()) {
-      toast.error("Invalid promo code");
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) {
+      toast.error("Please enter a promo code");
+      return;
     }
+
+    setPromoValidating(true);
+    try {
+      const response = await fetch("/api/promo-codes/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode.trim(), order_amount: subtotal }),
+      });
+
+      const data = await response.json();
+
+      if (data.valid) {
+        setAppliedPromo({
+          id: data.promo_id,
+          code: promoCode.trim().toUpperCase(),
+          discount_type: data.discount_type,
+          discount_value: data.discount_value,
+          discount_amount: data.discount_amount,
+        });
+        toast.success(`Promo code applied! You save ${formatNepaliCurrency(data.discount_amount)}`);
+      } else {
+        toast.error(data.message || "Invalid promo code");
+        setAppliedPromo(null);
+      }
+    } catch (error) {
+      console.error("Failed to validate promo code:", error);
+      toast.error("Failed to validate promo code");
+    } finally {
+      setPromoValidating(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCode("");
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -137,6 +186,8 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
           subtotal,
           delivery_charge: effectiveDeliveryCharge,
           total,
+          promo_code: appliedPromo?.code || null,
+          promo_discount: appliedPromo?.discount_amount || 0,
         }),
       });
 
@@ -373,6 +424,12 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
                       <span className="text-muted-foreground">Sub-total</span>
                       <span>{formatNepaliCurrency(subtotal)}</span>
                     </div>
+                    {appliedPromo && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-green-600">Discount ({appliedPromo.code})</span>
+                        <span className="text-green-600">-{formatNepaliCurrency(appliedPromo.discount_amount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Delivery Charge</span>
                       {allFreeDelivery ? (
@@ -397,17 +454,44 @@ export default function CheckoutForm({ deliveryRates }: CheckoutFormProps) {
                   {/* Promo Code */}
                   <div>
                     <Label htmlFor="promoCode">Promo Code</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        id="promoCode"
-                        placeholder="eg: FREE30"
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
-                      />
-                      <Button type="button" onClick={handleApplyPromo} className="bg-[#e10600] hover:bg-[#c00500]">
-                        APPLY
-                      </Button>
-                    </div>
+                    {appliedPromo ? (
+                      <div className="flex items-center justify-between mt-1 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
+                        <div>
+                          <span className="font-mono font-bold text-green-700 dark:text-green-400">{appliedPromo.code}</span>
+                          <span className="text-sm text-green-600 dark:text-green-500 ml-2">
+                            {appliedPromo.discount_type === "percentage" 
+                              ? `${appliedPromo.discount_value}% off` 
+                              : `${formatNepaliCurrency(appliedPromo.discount_value)} off`}
+                          </span>
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={handleRemovePromo}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          id="promoCode"
+                          placeholder="eg: FREE30"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                        />
+                        <Button 
+                          type="button" 
+                          onClick={handleApplyPromo} 
+                          className="bg-[#e10600] hover:bg-[#c00500]"
+                          disabled={promoValidating}
+                        >
+                          {promoValidating ? "..." : "APPLY"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Place Order Button */}

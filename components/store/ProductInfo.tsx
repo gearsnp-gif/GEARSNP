@@ -17,7 +17,7 @@ interface ProductInfoProps {
     stock: number;
     is_featured: boolean;
     has_sizes: boolean;
-    free_delivery: boolean;
+    free_delivery?: boolean;
     hero_image_url: string | null;
     team: {
       name: string;
