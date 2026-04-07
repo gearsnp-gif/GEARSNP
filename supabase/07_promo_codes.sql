@@ -129,13 +129,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to increment promo code usage
+-- Function to increment promo code usage by ID
 CREATE OR REPLACE FUNCTION increment_promo_code_usage(p_promo_id UUID)
 RETURNS VOID AS $$
 BEGIN
   UPDATE promo_codes
   SET used_count = used_count + 1
   WHERE id = p_promo_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to increment promo code usage by code string
+CREATE OR REPLACE FUNCTION increment_promo_code_usage_by_code(p_code TEXT)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE promo_codes
+  SET used_count = used_count + 1
+  WHERE UPPER(code) = UPPER(p_code);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

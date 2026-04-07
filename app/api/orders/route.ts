@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
+import { createClient } from "@supabase/supabase-js";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+// Helper to get admin client (created on demand)
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
 
 // GET /api/orders - Fetch orders (admin sees all, users see their own)
 export async function GET() {
@@ -211,7 +220,22 @@ export async function POST(request: Request) {
     // Increment promo code usage if one was applied
     if (promo_code && promo_discount > 0) {
       try {
-        await supabase.rpc('increment_promo_code_usage', { p_code: promo_code });
+        const supabaseAdmin = getSupabaseAdmin();
+        if (supabaseAdmin) {
+          // Get current count and increment using admin client (bypasses RLS)
+          const { data: currentPromo } = await supabaseAdmin
+            .from('promo_codes')
+            .select('used_count')
+            .ilike('code', promo_code)
+            .single();
+          
+          if (currentPromo) {
+            await supabaseAdmin
+              .from('promo_codes')
+              .update({ used_count: currentPromo.used_count + 1 })
+              .ilike('code', promo_code);
+          }
+        }
       } catch (promoError) {
         console.error("Failed to increment promo code usage:", promoError);
         // Don't fail the order creation for this

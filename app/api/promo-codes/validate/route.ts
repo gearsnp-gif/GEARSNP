@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 
 // POST /api/promo-codes/validate - Validate and calculate discount
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await supabaseServer();
+    // Create admin client inside function to handle missing env vars gracefully
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("Missing Supabase environment variables");
+      return NextResponse.json(
+        { valid: false, message: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+    
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    
     const body = await request.json();
     const { code, order_amount } = body;
 
@@ -22,18 +35,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the promo code
-    const { data: promo, error } = await supabase
+    // Find the promo code (without is_active filter to check status properly)
+    const { data: promo, error } = await supabaseAdmin
       .from("promo_codes")
       .select("*")
       .ilike("code", code)
-      .eq("is_active", true)
       .single();
 
     if (error || !promo) {
       return NextResponse.json({
         valid: false,
         message: "Invalid promo code",
+      });
+    }
+
+    // Check if code is active
+    if (!promo.is_active) {
+      return NextResponse.json({
+        valid: false,
+        message: "This promo code is no longer active",
       });
     }
 
@@ -57,7 +77,7 @@ export async function POST(request: NextRequest) {
     if (promo.usage_limit !== null && promo.used_count >= promo.usage_limit) {
       return NextResponse.json({
         valid: false,
-        message: "This promo code has reached its usage limit",
+        message: "This promo code has expired",
       });
     }
 
